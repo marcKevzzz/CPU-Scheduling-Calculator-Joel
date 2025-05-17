@@ -1,0 +1,93 @@
+.timeline-block {
+  border-radius: 4px;
+  border: none;
+  position: relative;
+}
+
+#timeline {
+  white-space: nowrap;
+  align-items: flex-end;
+  position: relative;
+  width: fit-content;
+}
+
+.timeline-vrline {
+  width: calc(100% - 70px);
+  border-top: 2px solid #2e2e8c;
+  position: absolute;
+  top: 48%;
+  left: 35px;
+}
+.timeline-vrlines {
+  width: calc(100%);
+  border-top: 1px solid #2e2e8c;
+  position: absolute;
+  top: 48%;
+}
+
+.dropdown-arrows {
+  border-right: 1px solid #2e2e8c;
+}
+
+.timeline-block:first-child .dropdown-arrows {
+  width: 1px;
+}
+.dropdown-arrow {
+  width: 2px;
+  height: 20px;
+  background-color: #2e2e8c;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.hide {
+  display: none;
+}
+
+section #timeline,
+section #ganttchart,
+#cpuResult {
+  overflow-x: auto;
+  max-width: calc(100%);
+}
+
+.timeQuantum,
+.prioritys {
+  display: none;
+}
+
+#completion,
+#cpuResult span {
+  text-wrap-mode: nowrap;
+}
+
+.hiden {
+  display: none !important;
+}
+
+.hides {
+  display: none;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.slashed {
+  position: relative;
+  display: inline-block;
+}
+.slashed::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -5%;
+  height: 2px;
+  width: 30%;
+  background: rgba(0, 0, 0, 0.753);
+  transform: rotate(25deg);
+}

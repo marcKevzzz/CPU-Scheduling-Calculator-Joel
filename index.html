@@ -1,0 +1,544 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CPU Scheduling</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Monoton&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@700&display=swap");
+      .font-monoton {
+        font-family: "Monoton", cursive;
+      }
+      .font-robotoslab {
+        font-family: "Roboto Slab", serif;
+      }
+      /* Custom checkbox style to replicate dotted lines and spacing */
+      input[type="checkbox"] {
+        accent-color: transparent;
+        width: 18px;
+        height: 18px;
+        border: 1.5px solid #2e2e8c;
+        border-radius: 3px;
+        margin-right: 0.5em;
+      }
+      input[type="checkbox"]:checked {
+        background-color: #2e2e8c;
+      }
+      /* Dotted lines after checkbox label text */
+      .checkbox-label {
+        cursor: pointer;
+        user-select: none;
+        color: #2e2e8c;
+        font-weight: 600;
+        font-size: 0.85em;
+        font-family: "Roboto Slab", serif;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+      }
+
+      .checkbox-label span.dotted-line {
+        border-bottom: 2px dotted #2e2e8c;
+        display: inline-block;
+        height: 5px;
+        margin-inline: 0.3em;
+        flex-grow: 1;
+      }
+      .checkbox-label span.text {
+        position: relative;
+        z-index: 10;
+      }
+      .hide{
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body class="bg-[#d6d6f7] min-h-screen flex justify-center items-start p-6">
+    <!-- Toast -->
+    <div
+      id="toast-danger"
+      class="hidden flex items-center w-full max-w-xs px-2 p-1 mb-4 text-gray-500 bg-white rounded-lg shadow-sm dark:text-gray-400 dark:bg-gray-800 fixed sm:top-[4rem] top-[3rem] right-[1rem] z-50 transition-opacity duration-300 opacity-0"
+      role="alert"
+    >
+      <div
+        class="inline-flex items-center justify-center shrink-0 w-8 h-8 text-red-500 bg-red-100 rounded-lg dark:bg-red-800 dark:text-red-200"
+        id="no"
+      >
+        <svg
+          class="w-5 h-5"
+          aria-hidden="true"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path
+            d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM10 15a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm1-4a1 1 0 0 1-2 0V6a1 1 0 0 1 2 0v5Z"
+          />
+        </svg>
+        <span class="sr-only">Warning icon</span>
+      </div>
+      <div
+        class="hide inline-flex items-center justify-center shrink-0 w-8 h-8 text-green-500 bg-green-100 rounded-lg dark:bg-green-800 dark:text-green-200"
+        id="success"
+      >
+        <svg
+          class="w-5 h-5"
+          aria-hidden="true"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path
+            d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"
+          />
+        </svg>
+        <span class="sr-only">Check icon</span>
+      </div>
+      <div class="ms-3 text-[14px] font-normal" id="toastLbl"></div>
+      <button
+        id="hideToast"
+        class="ms-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg p-1.5 hover:bg-gray-100 inline-flex items-center justify-center h-8 w-8 dark:text-gray-500 dark:hover:text-white dark:bg-gray-800 dark:hover:bg-gray-700"
+        aria-label="Close"
+      >
+        <svg
+          class="w-3 h-3"
+          aria-hidden="true"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 14 14"
+        >
+          <path
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"
+          />
+        </svg>
+      </button>
+    </div>
+    <main
+      class="max-w-[420px] w-full bg-[#d6d6f7] text-[#2e2e8c] select-none"
+      style="font-family: 'Roboto Slab', serif"
+    >
+      <h1
+        class="font-monoton text-[32px] text-[#2e2e8c] mb-6 select-text"
+        style="letter-spacing: 0.1em"
+      >
+        CPU SCHEDULING
+      </h1>
+
+      <form
+        class="flex flex-wrap gap-4 justify-between mb-[3em]"
+        onsubmit="return false"
+        aria-label="CPU Scheduling Input Form"
+      >
+        <fieldset
+          class="border border-[#2e2e8c] rounded-xl p-4 w-full text-center select-text"
+          aria-label="Pick 1 Algorithm"
+        >
+          <legend
+            class="text-[12px] font-robotoslab font-bold text-[#2e2e8c] px-2 select-text"
+            style="letter-spacing: 0.05em"
+          >
+            PICK 1 ALGORITHM
+          </legend>
+          <div class="flex flex-col gap-2 mt-2 text-left" id="algorithmOptions">
+            <label class="checkbox-label relative">
+              <input
+                type="radio"
+                name="algorithm"
+                value="FCFS"
+                class="peer hidden"
+                aria-label="First Come First Serve"
+                
+              />
+              <div
+                class="flex items-center justify-center w-full cursor-pointer peer-checked:text-blue-400 peer-checked:underline"
+              >
+                <span class="dotted-line"></span>
+                <span class="text">First Come First Serve (FCFS)</span>
+                <span class="dotted-line"></span>
+              </div>
+            </label>
+
+            <label class="checkbox-label relative">
+              <input
+                type="radio"
+                name="algorithm"
+                value="SJF"
+                class="peer hidden"
+                aria-label="Shortest Job First"
+              />
+              <div
+                class="flex items-center justify-center w-full cursor-pointer peer-checked:text-blue-400 peer-checked:underline"
+              >
+                <span class="dotted-line"></span>
+                <span class="text">Shortest Job First (SJF)</span>
+                <span class="dotted-line"></span>
+              </div>
+            </label>
+
+            <label class="checkbox-label relative">
+              <input
+                type="radio"
+                name="algorithm"
+                value="NPP"
+                class="peer hidden"
+                aria-label="Non-Preemptive Priority"
+              />
+              <div
+                class="flex items-center justify-center w-full cursor-pointer peer-checked:text-blue-400 peer-checked:underline"
+              >
+                <span class="dotted-line"></span>
+                <span class="text">Non-Preemptive Priority (NPP)</span>
+                <span class="dotted-line"></span>
+              </div>
+            </label>
+
+            <label class="checkbox-label relative">
+              <input
+                type="radio"
+                name="algorithm"
+                value="PP"
+                class="peer hidden"
+                aria-label="Preemptive Priority"
+              />
+              <div
+                class="flex items-center justify-center w-full cursor-pointer peer-checked:text-blue-400 peer-checked:underline"
+              >
+                <span class="dotted-line"></span>
+                <span class="text">Preemptive Priority (PP)</span>
+                <span class="dotted-line"></span>
+              </div>
+            </label>
+
+            <label class="checkbox-label relative">
+              <input
+                type="radio"
+                name="algorithm"
+                value="SRTF"
+                class="peer hidden"
+                aria-label="Shortest Remaining Job First"
+              />
+              <div
+                class="flex items-center justify-center w-full cursor-pointer peer-checked:text-blue-400 peer-checked:underline"
+              >
+                <span class="dotted-line"></span>
+                <span class="text">Shortest Remaining Time First (SRTF)</span>
+                <span class="dotted-line"></span>
+              </div>
+            </label>
+
+            <label class="checkbox-label relative">
+              <input
+                type="radio"
+                name="algorithm"
+                value="RR"
+                class="peer hidden"
+                aria-label="Round Robin"
+              />
+              <div
+                class="flex items-center justify-center w-full cursor-pointer peer-checked:text-blue-400 peer-checked:underline"
+              >
+                <span class="dotted-line"></span>
+                <span class="text">Round Robin (RR)</span>
+                <span class="dotted-line"></span>
+              </div>
+            </label>
+          </div>
+        </fieldset>
+        <div class="flex flex-col gap-4 flex-grow w-full">
+          <label
+            class="flex flex-col text-[14px] font-robotoslab font-bold select-text w-full justify-between"
+          >
+            Enter Arrival Time
+            <input
+              type="text"
+              name="arrivalTime"
+              autocomplete="off"
+              class="rounded-full border border-[#2e2e8c] px-4 py-1 text-[#2e2e8c] grow-1 font-semibold text-[14px] focus:outline-none input-box"
+              aria-label="Enter Arrival Time"
+                list="arrivalTimeSuggestions"
+                placeholder="ex. 0 1 2 3 4"
+              />
+              <datalist id="arrivalTimeSuggestions">
+                <option value="0 1 2 3 4"></option>
+                <option value="0 3 2 5"></option>
+                <option value="1, 2, 3, 4, 5"></option>
+              </datalist>
+            
+          </label>
+          <label
+            class="flex flex-col text-[14px] font-robotoslab font-bold select-text w-full justify-between"
+          >
+            Enter Burst Time
+            <input
+              type="text"
+              name="burstTime"
+              autocomplete="off"
+              class="rounded-full border border-[#2e2e8c] px-4 py-1 text-[#2e2e8c] grow-1 font-semibold text-[14px] focus:outline-none input-box"
+              aria-label="Enter Burst Time"
+                 list="burstTimeSuggestions"
+                 placeholder="ex. 2 5 2 9 3"
+              />
+              <datalist id="burstTimeSuggestions">
+                <option value="2 5 2 9 3"></option>
+                <option value="10 5 8 7"></option>
+                <option value="4, 6, 3, 2"></option>
+              </datalist>
+          </label>
+          <label
+            class=" flex-col text-[14px] font-robotoslab font-bold select-text w-full justify-between  prioritys"
+          >
+            Enter Priority
+            <input
+              type="text"
+              name="priority"
+              autocomplete="off"
+              class="rounded-full border border-[#2e2e8c] px-4 py-1 text-[#2e2e8c] grow-1 font-semibold text-[14px] focus:outline-none extraInput"
+              aria-label="Enter Priority"
+              placeholder="ex. 3 2 1 4 5"
+              
+         list="priorityTimeSuggestions"
+              />
+              <datalist id="priorityTimeSuggestions">
+                <option value="3 2 1 4 5"></option>
+                <option value="3 1 2 4"></option>
+                <option value="5, 3, 1, 2"></option>
+              </datalist>
+          </label>
+          <label
+            class=" flex-col text-[14px] font-robotoslab font-bold select-text w-full justify-between  timeQuantum"
+          >
+            Enter Time Quantum
+            <input
+              type="text"
+              name="priority"
+              autocomplete="off"
+              class="rounded-full border border-[#2e2e8c] px-4 py-1 text-[#2e2e8c] grow-1 font-semibold text-[14px] focus:outline-none "
+              aria-label="Enter Priority"
+              id="timeQuantum"
+              placeholder="ex. 2"
+            />
+          </label>
+          <div class="flex gap-4 mt-1">
+            <button
+              type="reset"
+              class="rounded-full border border-[#2e2e8c] text-[#2e2e8c] text-[12px] font-semibold px-5 py-1 hover:bg-[#2e2e8c] hover:text-white transition"
+              aria-label="Delete"
+              id="clear"
+            >
+              CLEAR
+            </button>
+            <button
+              type="button"
+              class="rounded-full border border-[#2e2e8c] text-[#2e2e8c] text-[12px] font-semibold px-5 py-1 hover:bg-[#2e2e8c] hover:text-white transition"
+              aria-label="Calculate"
+              id="calculate"
+            >
+              CALCULATE
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <section class="mb-[3em] select-text" aria-label="timeline">
+        <h2
+          class="text-[14px] mb-3 font-robotoslab font-bold text-[2e2e8c] mb-1"
+          style="letter-spacing: 0.05em"
+        >
+          TINMELINE
+        </h2>
+        <div id="timeline" class="flex flex-row mt-2 w-[fit-content]">
+          <div class="timeline-block flex flex-col gap-5 py-1 text-center">
+            <div class="dropdown-arrows w-[60px] h-[40px]"></div>
+          </div>
+          <div class="timeline-block flex flex-col gap-5 py-1 text-center">
+            <div class="dropdown-arrows w-[60px] h-[40px]"></div>
+          </div>
+          <div class="timeline-block flex flex-col gap-5 py-1 text-center">
+            <div class="dropdown-arrows w-[60px] h-[40px]"></div>
+          </div>
+          <div class="timeline-block flex flex-col gap-5 py-1 text-center">
+            <div class="dropdown-arrows w-[60px] h-[40px]"></div>
+          </div>
+          <div class="timeline-block flex flex-col gap-5 py-1 text-center">
+            <div class="dropdown-arrows w-[60px] h-[40px]"></div>
+          </div>
+          <div class="timeline-block flex flex-col gap-5 py-1 text-center">
+            <div class="dropdown-arrows w-[60px] h-[40px]"></div>
+          </div>
+          <div class="timeline-vrlines"></div>
+        </div>
+      </section>
+
+      <section class="mb-[3em] select-text" aria-label="Gantt Chart">
+        <h2
+          class="text-[14px] mb-3 font-robotoslab font-bold text-[#2e2e8c] mb-1"
+          style="letter-spacing: 0.05em"
+        >
+          GANTT CHART
+        </h2>
+        <div id="ganttChart" class="mt-2 p-2 w-[fit-content] w-full">
+          <div id="head" class="flex flex-row"></div>
+          <div id="gbody" class="flex flex-row w-full">
+            <div class="flex border border-[#2e2e8c] w-full max-w-[100%] h-8">
+              <div class="border-r border-[#2e2e8c] flex-1"></div>
+              <div class="border-r border-[#2e2e8c] flex-1"></div>
+              <div class="border-r border-[#2e2e8c] flex-1"></div>
+              <div class="border-r border-[#2e2e8c] flex-1"></div>
+              <div class="border-r border-[#2e2e8c] flex-1"></div>
+              <div class="border-r border-[#2e2e8c] flex-1"></div>
+              <div class="border-r border-[#2e2e8c] flex-1"></div>
+              <div class="flex-1"></div>
+            </div>
+          </div>
+          <div id="tail" class="flex flex-row"></div>
+          <div id="queue" class="flex flex-row"></div>
+        </div>
+      </section>
+
+      <section class="mb-[3em] select-text" aria-label="Turn-Around Time">
+        <h2
+          class="text-[14px] mb-3 font-robotoslab font-bold text-[#2e2e8c] mb-1"
+          style="letter-spacing: 0.05em"
+        >
+          TURN-AROUND TIME
+        </h2>
+        <table
+          class="w-full border border-[#2e2e8c] text-[12px]  font-robotoslab font-bold text-[#2e2e8c] mb-1"
+          aria-label="Turn-Around Time Table"
+          id="resultTable"
+        >
+          <thead>
+            <tr>
+              <th class="border border-[#2e2e8c] px-2 py-1"></th>
+              <th class="border border-[#2e2e8c] px-2 py-1">
+                BT - ARRIVING TIME
+              </th>
+              <th class="border border-[#2e2e8c] px-2 py-1"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="border border-[#2e2e8c] px-2 py-1">ttave</td>
+              <td class="border border-[#2e2e8c] px-2 py-1">&nbsp;</td>
+              <td class="border border-[#2e2e8c] px-2 py-1">
+                <div class="flex justify-end items-center gap-1 pr-2">
+                  <div class="w-10 h-[1px] bg-[#2e2e8c]"></div>
+                  <span>ms</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="mb-[3em] select-text" aria-label="Waiting Time">
+        <h2
+          class="text-[14px] mb-3 font-robotoslab font-bold text-[#2e2e8c] "
+          style="letter-spacing: 0.05em"
+        >
+          WAITING TIME
+        </h2>
+        <table
+          class="w-full border border-[#2e2e8c] text-[12px]  font-robotoslab font-bold text-[#2e2e8c] "
+          aria-label="Waiting Time Table"
+          id="resultTableWaitingTime"
+        >
+          <thead>
+            <tr>
+              <th class="border border-[#2e2e8c] px-2 py-1"></th>
+              <th class="border border-[#2e2e8c] px-2 py-1">TAT - BT</th>
+              <th class="border border-[#2e2e8c] px-2 py-1"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="border border-[#2e2e8c] px-2 py-1">wtave</td>
+              <td class="border border-[#2e2e8c] px-2 py-1">&nbsp;</td>
+              <td class="border border-[#2e2e8c] px-2 py-1">
+                <div class="flex justify-end items-center gap-1 pr-2">
+                  <div class="w-10 h-[1px] bg-[#2e2e8c]"></div>
+                  <span>ms</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="mb-[3em] select-text" aria-label="cpuUtil">
+        <h2
+          class="text-[14px] mb-3 font-robotoslab font-bold text-[#2e2e8c] mb-1"
+          style="letter-spacing: 0.05em"
+        >
+          % OF CPU UTILIZATION
+        </h2>
+
+        <div
+          class="text-center flex sm:flex-row flex-col gap-4 sm:gap-0 items-center justify-center mt-2 w-[fit-content] hide text-sm"
+          id="cpuResult"
+        >
+          <div class="flex flex-row items-center  w-[100%]">
+            <span>= </span>
+
+            <div
+              class="w-[fit-content] flex flex-col items-center justify-center"
+            >
+              <span class="inline-block pb-1" id="process"> </span>
+              <span
+                class="inline-block pt-2 ml-1 mr-1 border-t border-black tracking-tight"
+                id="completion"
+              >
+              </span>
+            </div>
+
+            <div class="flex flex-row items-center">
+              <span class="ml-2 mr-2"> = </span>
+              <div
+                class="w-[fit-content] flex flex-col items-center justify-center"
+              >
+                <span
+                  class="inline-block border-b border-black pb-1 tracking-tighter"
+                  id="adds"
+                >
+                </span>
+                <span class="inline-block pt-1" id="burstt"> </span>
+              </div>
+              <span class="ml-2 mr-2"> × 100 = </span>
+              <span
+                class="inline-block border-1 border-[#2e2e8c] rounded-md px-3 py-1 hide"
+                id="cpuTotal"
+              >
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class=" items-center gap-2 text-[#2e2e8c] font-robotoslab font-bold text-[12px] select-text "
+          style="letter-spacing: 0.05em; display: flex;"
+          aria-label="Formula"
+          id="formula"
+          
+        >
+          <div class="flex-1 border-b border-[#2e2e8c]"></div>
+          <span>=</span>
+          <div class="flex-1 border-b border-[#2e2e8c]"></div>
+          <span>× 100 =</span>
+          <div class="w-14 border-b border-[#2e2e8c]"></div>
+          <span>%</span>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="script.js"></script>
+  </body>
+</html>
